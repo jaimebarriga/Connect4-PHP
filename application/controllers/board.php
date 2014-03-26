@@ -47,13 +47,20 @@ class Board extends CI_Controller {
     	switch($user->user_status_id) {
     		case User::PLAYING:	
     			$data['status'] = 'playing';
+    			$data['turn'] = 'their-turn';
     			break;
     		case User::WAITING:
     			$data['status'] = 'waiting';
+    			$data['turn'] = 'waiting';
     			break;
     	}
 	    	
 		$this->load->view('match/board',$data);
+    }
+
+    function startMatch() {
+    	$this->input->post("match_id");
+
     }
 
  	function postMsg() {
@@ -137,6 +144,69 @@ class Board extends CI_Controller {
 		
 		error:
 		echo json_encode(array('status'=>'failure','message'=>$errormsg));
+ 	}
+
+ 	function getMatchState(){
+ 		$this->load->model('user_model');
+ 		$this->load->model('match_model');
+ 			
+ 		$user = $_SESSION['user'];
+ 		 
+ 		$user = $this->user_model->get($user->login);
+
+ 		$errormsg;
+ 		if ($user->user_status_id != User::PLAYING) {	
+ 			$errormsg="Not in PLAYING state";
+			echo json_encode(array('status'=>'failure','message'=>$errormsg));		
+ 		}
+ 		else {
+	 		$match = $this->match_model->get($user->match_id);
+	 		$match_board = $this->match_model->getMatchState($match->id);
+
+	 		echo(json_encode(unserialize($match_board->board_state)));
+ 		}
+ 	}
+
+ 	function updateMatchState(){
+ 		$this->load->model('user_model');
+ 		$this->load->model('match_model');
+
+ 		$user = $_SESSION['user'];
+ 		 
+ 		$user = $this->user_model->get($user->login);
+
+ 		$matchState = serialize(json_decode($this->input->post("matchState")));
+
+ 		if ($user->user_status_id != User::PLAYING) {	
+ 			$errormsg="Not in PLAYING state";
+ 			goto error;
+ 		}
+ 			
+ 		$match = $this->match_model->get($user->match_id);
+
+ 		$this->db->trans_begin();
+
+ 		$match_state = $this->match_model->updateMatchState($match->id,$matchState);
+
+ 		$this->db->trans_commit();
+
+ 		error:
+		echo json_encode(array('status'=>'failure','message'=>$errormsg));	
+ 	}
+
+ 	function sendArray(){
+ 		$in_array = $this->input->post("matchStatus");
+ 		$data["data"] = json_decode($in_array);
+ 		$this->load->view('match/getHTML.php',$data);
+ 	}
+
+ 	function getArray(){
+ 		$array = array(
+ 			array(2,4,6),
+ 			array(8,10,12),
+ 			array(14,16,18)
+ 		);
+ 		echo json_encode($array);
  	}
  	
  }

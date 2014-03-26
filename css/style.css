@@ -8,11 +8,11 @@
 	text-align: center;
 }
 
-.game-container {
+#game-container {
 	text-align: center;
 }
 
-.game {
+#game {
 	display: inline-block;
 	border: 1px solid #333;
 	-webkit-border-radius: 4px;
@@ -22,32 +22,32 @@
 	min-width: 500px;
 }
 
-.game aside {
+#game aside {
 	border-right: 1px dashed #ddd;
 	float: left;
 	margin: 0;
 }
 
-.game aside:hover {
+.your-turn aside:hover {
 	background-color: rgba(235,235,235,1);
 }
 
-.game aside:last-of-type {
+#game aside:last-of-type {
 	border: none;
 }
 
-.game aside div {
+#game aside div {
 	width: 70px;
 	height: 70px;
 	border-top: 1px dashed #ddd;
 	position: relative;
 }
 
-.game aside div:first-child{
+#game aside div:first-child{
 	border-top: none;
 }
 
-.game div:before {
+#game div:before {
 	width: 66px;
 	height: 66px;
 	border-radius: 50%;

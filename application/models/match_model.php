@@ -11,6 +11,22 @@ class Match_model extends CI_Model {
 			return null;
 	}
 
+	function getMatchState($id)
+	{
+		$sql = "select board_state from `match` where id=? for update";
+		$query = $this->db->query($sql,array($id));
+		if ($query && $query->num_rows() > 0)
+			return $query->row(0);
+		else
+			return null;
+	}
+
+	function updateMatchState($id,$state)
+	{
+		$this->db->where('id',$id);
+		return $this->db->update('match',array('board_state'=>$state));
+	}
+
 	function get($id)
 	{
 		$this->db->where('id',$id);

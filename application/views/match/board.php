@@ -6,51 +6,10 @@
 <script src="http://code.jquery.com/jquery-latest.js"></script>
 <script src="<?= base_url() ?>/js/jquery.timers.js"></script>
 <script>
-$(function(){
-
 	var otherUser = "<?= $otherUser->login ?>";
 	var user = "<?= $user->login ?>";
 	var status = "<?= $status ?>";
-
-	$('body').everyTime(2000,function(){
-		if (status == 'waiting') {
-			$.getJSON('<?= base_url() ?>arcade/checkInvitation',function(data, text, jqZHR){
-				if (data && data.status=='rejected') {
-					alert("Sorry, your invitation to play was declined!");
-					window.location.href = '<?= base_url() ?>arcade/index';
-				}
-				if (data && data.status=='accepted') {
-					status = 'playing';
-					$('#status').html('Playing ' + otherUser);
-				}	
-			});
-		}
-		var url = "<?= base_url() ?>board/getMsg";
-		$.getJSON(url, function (data,text,jqXHR){
-			if (data && data.status=='success') {
-				var conversation = $('[name=conversation]').val();
-				var msg = data.message;
-				if (msg.length > 0)
-					conversation += "\n" + otherUser + ": " + msg;
-					$('[name=conversation]').val(conversation);
-			}
-		});
-	});
-
-	$('form').submit(function(){
-		var arguments = $(this).serialize();
-		var url = "<?= base_url() ?>board/postMsg";
-		$.post(url,arguments, function (data,textStatus,jqXHR){
-			var conversation = $('[name=conversation]').val();
-			var msg = $('[name=msg]').val();
-			$('[name=conversation]').val(conversation + "\n" + user + ": " + msg);
-		});
-		return false;
-	});	
-
-});
-
-
+	var baseURL = "<?= base_url() ?>";
 </script>
 <script src="<?= base_url() ?>/js/arcade/board.js"></script>
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
@@ -60,8 +19,8 @@ $(function(){
 <h1>Game Area</h1>
 
 	<div class="row">
-		<div class="col-sm-8 game-container">
-			<div class="game">
+		<div class="col-sm-8" id="game-container">
+			<div id="game">
 				<aside>
 					<div></div><div></div><div></div><div></div><div></div><div></div>
 				</aside>
@@ -110,7 +69,9 @@ $(function(){
 				
 			?>
 
-			<div id="next-player" class="blue-next"></div>
+			<div id="next-player"></div>
+			<div id="get-match-state">Get from PHP</div>
+			<div id="php-receive"></div>
 		</div>
 	</div>
 
