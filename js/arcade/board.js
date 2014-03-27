@@ -8,13 +8,164 @@ $(function(){
 
 	var nextPlayerColor = $('#next-player');
 	var nextColor;
+	var stateChanged;
+	var gameover = false;
 
 	function updateMatchStateDB(matchState){
 		var data = {matchStatus: JSON.stringify(matchState)};
 		var urlUMS = baseURL+"board/updateMatchState";
-		$.post(urlUMS, {matchState: JSON.stringify(matchState)}, function(data) {
-			return data["matchState"];
+		$.ajax({
+			type: "POST",
+			url: urlUMS,
+			data: {matchState: JSON.stringify(matchState)},
+			success: function(data) {
+				return data["matchState"];
+			},
+			error: function(jqXHR, textStatus, errorThrown){
+					console.log(jqXHR);
+					console.log(textStatus);
+					console.log(errorThrown);
+			}
 		});
+	}
+
+	var winner = "";
+
+	function checkForVictor(){
+		//Check Rows First
+		var board = matchState['board'];
+		var winningPositions = [];
+		var victory = false;
+
+		function checkRow(){
+			console.log("Checking for row victors");
+			winner = "";
+			winningPositions.length = 0;
+			for(var i = 0; i<6; i++){//Row
+				winner = "";
+				winningPositions.length = 0;
+				for(var j = 0; j<7; j++){//Columns
+					if(board[3][i] == "none"){
+						break;
+					}
+					if(board[j][i] != "none" && board[j+1] != undefined){
+						if( board[j][i] == board[j+1][i] ){
+							winner = board[j][i];
+							winningPositions.push( "("+j+","+i+")" );
+							if( winningPositions.length == 3 ){
+								winningPositions.push( "("+(j+1)+","+(i)+")" );
+							}
+						}
+						else{
+							winner = "";
+							winningPositions.length = 0;
+						}
+						if( winningPositions.length == 4 ){
+							console.log(winner+" wins!");
+							console.log("ROW: "+winningPositions);
+							return winner;
+						}
+					}
+				}
+			}
+			return false;
+		}
+
+		function checkColumn(){
+			console.log("Checking for row victors");
+			winningPositions.length = 0;
+			winner = "";
+			for(var j = 0; j<7; j++){//Columns
+				for(var i = 0; i<6; i++){//Row
+					if(board[j][2] != board[j][3]){
+						break;
+					}
+					if(board[j][i] == "none"){
+						continue;
+					}
+					if(board[j][i+1] == undefined){
+
+					}
+					else {
+						if( board[j][i] == board[j][i+1] ){
+							winner = board[j][i];
+							winningPositions.push( "("+j+","+i+")" );
+							// because we are matching couples of cells each time, when the length of 'winningPositions' is 3, it means [a=b,b=c && c=d] so we need to manually store the last position
+							if( winningPositions.length == 3 ){
+								winningPositions.push( "("+(j)+","+(i+1)+")" );
+							}
+						}
+						else{
+							winningPositions.length = 0;
+							winner = "";
+						}
+						// if [a=b,b=c && c=d] then the array will now have 4 itmes (positions) for 4 cells of the same kind
+						if( winningPositions.length == 4 ){
+							console.log(winner+" wins!");
+							console.log("COLUMNS: "+winningPositions);
+							return winner;
+						}
+					}
+				}
+			}
+			return false;
+		}
+
+		function checkDiagonal(){
+			console.log("Checking for diagonal victors");
+			winningPositions.length = 0;
+			winner = "";
+			function checkPair(j,i,delta){
+				winningPositions.push("("+j+","+i+")");
+				winner = board[j][i];
+				if(board[j+delta] == undefined){
+
+				}
+				else {
+					if(board[j+delta][i-1] && board[j][i] == board[j+delta][i-1]){
+						checkPair(j+delta,i-1,delta);
+					}
+				}
+				if(winningPositions.length == 4){
+					return true;
+				}
+			}
+			for(var j = 0; j<6; j++){//Columns
+				for(var i = 0; i<6; i++){//Row
+					winningPositions.length = 0;
+					winner = "";
+					if(board[j+1][i-1] && board[j+1][i-1] == "none"){
+						continue;
+					}
+					else {
+						if(checkPair(j,i,-1)){
+							console.log(winner+" wins!");
+							console.log("DIAGONAL"+winningPositions);
+							return winner;
+						}
+					}
+				}
+			}
+
+			for(var j = 0; j<6; j++){//Columns
+				for(var i = 5; i>=0; i--){//Row
+					winningPositions.length = 0;
+					if(board[j+1][i-1] && board[j+1][i-1] == "none"){
+						continue;
+					}
+					else {
+						if(checkPair(j,i,1)){
+							console.log("DIAGONAL"+winningPositions);
+							console.log(winner+" wins!");
+							return winner;
+						}
+					}
+				}
+			}
+			return false;
+		}
+
+		return checkRow() || checkColumn() || checkDiagonal() ;
 	}
 
 	function updateBoardSlots(){
@@ -36,6 +187,7 @@ $(function(){
 		}
 	}
 
+
 	function getMatchState(){
 		$.getJSON(baseURL+"board/getMatchState", function (data,text,jqXHR){
 			matchState = data;
@@ -48,10 +200,6 @@ $(function(){
 			else {
 				yourColor = "red";
 			}
-			// console.log("match host: "+matchState["host"]);
-			// console.log("match invitee: "+matchState["invitee"]);
-			// console.log("You are "+user+"with color "+yourColor);
-			// console.log("Plays next: "+matchState["status"]);
 			if(user == matchState["host"] && matchState["status"] == "blue"){
 				$('#game').removeClass().addClass('your-turn');
 			}
@@ -62,6 +210,21 @@ $(function(){
 				$('#game').removeClass().addClass('their-turn');
 			}
 			updateBoardSlots();
+			if(matchState['state'] == "tie"){
+				gameover = true;
+				alert("There has been a tie!");
+				setTimeout(function(){window.location.href = baseURL+'arcade/index';},2000);
+			}
+			else if(matchState['state'] == "blue"){
+				gameover = true;
+				alert("Blue has won!");
+				setTimeout(function(){window.location.href = baseURL+'arcade/index';},2000);
+			}
+			else if (matchState['state'] == "red"){
+				gameover = true;
+				alert("Red has won!");
+				setTimeout(function(){window.location.href = baseURL+'arcade/index';},2000);
+			}
 		});
 	}
 
@@ -83,6 +246,7 @@ $(function(){
 		matchState["hostcolor"] = "blue";
 		matchState["inviteecolor"] = "red";
 		matchState["status"] = "waiting"; //blue red
+		matchState["state"] = "active";
 	}
 	else{
 		getMatchState();
@@ -100,14 +264,14 @@ $(function(){
 				if (data && data.status=='accepted') {
 					matchState['status'] = "blue";
 					updateMatchStateDB(matchState);
-					$('#game').removeClass().addClass('your-turn');
+					getMatchState();
 					status = 'playing';
 					$('#status').html('Playing ' + otherUser);
 				}	
 			});
 		}
 		else {
-			if($('#game').hasClass('their-turn')){
+			if($('#game').hasClass('their-turn') && !gameover){
 				getMatchState();
 			}
 		}
@@ -162,6 +326,16 @@ $(function(){
 		//Take event off to prevent multiple clicks
 		$('#game-container').off('click', '.your-turn div', onClickDiv);
 		if(placeChip($(this))){
+			var victor = checkForVictor();
+			if(victor == "red" || victor == "blue" || victor == "tie"){
+				//alert(victor.charAt(0).toUpperCase() + victor.slice(1)+" has won!");
+				gameover = true;
+				matchState['state'] = victor;
+				matchState = updateMatchStateDB(matchState);
+				setTimeout(function(){
+					window.location.href = baseURL+'arcade/index';
+				},2000);
+			}
 			if(nextColor === "blue"){
 				nextColor = "red";
 			}

@@ -154,17 +154,10 @@ class Board extends CI_Controller {
  		 
  		$user = $this->user_model->get($user->login);
 
- 		$errormsg;
- 		if ($user->user_status_id != User::PLAYING) {	
- 			$errormsg="Not in PLAYING state";
-			echo json_encode(array('status'=>'failure','message'=>$errormsg));		
- 		}
- 		else {
-	 		$match = $this->match_model->get($user->match_id);
-	 		$match_board = $this->match_model->getMatchState($match->id);
+ 		$match = $this->match_model->get($user->match_id);
+ 		$match_board = $this->match_model->getMatchState($match->id);
 
-	 		echo(json_encode(unserialize($match_board->board_state)));
- 		}
+ 		echo(json_encode(unserialize($match_board->board_state)));
  	}
 
  	function updateMatchState(){
@@ -175,23 +168,47 @@ class Board extends CI_Controller {
  		 
  		$user = $this->user_model->get($user->login);
 
- 		$matchState = serialize(json_decode($this->input->post("matchState")));
+ 		$matchState = json_decode($this->input->post("matchState"), true);
 
  		if ($user->user_status_id != User::PLAYING) {	
- 			$errormsg="Not in PLAYING state";
- 			goto error;
+ 			echo("NOTPLAYING");
  		}
  			
  		$match = $this->match_model->get($user->match_id);
 
  		$this->db->trans_begin();
 
- 		$match_state = $this->match_model->updateMatchState($match->id,$matchState);
+ 		$match_winner = $matchState['state'];
+
+ 		if($match_winner == "blue"){
+ 			$this->match_model->updateStatus($match->id,Match::U1WON);
+ 			$u1 = $this->user_model->getFromId($match->user1_id);
+	    	$u2 = $this->user_model->getFromId($match->user2_id);
+
+ 			$this->user_model->updateStatus($u1->id,User::AVAILABLE);
+	    	$this->user_model->updateStatus($u2->id,User::AVAILABLE);
+ 		}
+ 		else if ($match_winner == "red"){
+ 			$this->match_model->updateStatus($match->id,Match::U2WON);
+ 			$u1 = $this->user_model->getFromId($match->user1_id);
+	    	$u2 = $this->user_model->getFromId($match->user2_id);
+
+ 			$this->user_model->updateStatus($u1->id,User::AVAILABLE);
+	    	$this->user_model->updateStatus($u2->id,User::AVAILABLE);
+ 		}
+ 		else if ($match_winner == "tie"){
+ 			$this->match_model->updateStatus($match->id,Match::TIE);
+ 			$u1 = $this->user_model->getFromId($match->user1_id);
+	    	$u2 = $this->user_model->getFromId($match->user2_id);
+
+ 			$this->user_model->updateStatus($u1->id,User::AVAILABLE);
+	    	$this->user_model->updateStatus($u2->id,User::AVAILABLE);
+ 		}
+ 		$serialized = serialize($matchState);
+ 		$match_state = $this->match_model->updateMatchState($match->id,$serialized);
 
  		$this->db->trans_commit();
 
- 		error:
-		echo json_encode(array('status'=>'failure','message'=>$errormsg));	
  	}
 
  	function sendArray(){
