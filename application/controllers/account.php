@@ -84,6 +84,14 @@ class Account extends CI_Controller {
 	    	}
 	    	else  
 	    	{
+	    		include_once $_SERVER['DOCUMENT_ROOT'] . '/connect4/securimage/securimage.php';
+				$securimage = new Securimage();
+				if ($securimage->check($_POST['captcha_code']) == false) {
+  					echo "The security code entered was incorrect.<br /><br />";
+  					echo "Please go <a href='javascript:history.go(-1)'>back</a> and try again.";
+  					exit;
+				}
+	    		
 	    		$user = new User();
 	    		 
 	    		$user->login = $this->input->post('username');
